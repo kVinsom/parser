@@ -1,0 +1,35 @@
+{
+  "vinted_gb": {
+    "label": "Vinted UK",
+    "provider": "vinted",
+    "regions": ["GB"],
+    "aliases": {"UK": "GB"},
+    "currencies": {"GB": "GBP"},
+    "unsupported": ["colors", "categories"],
+    "capabilities_verified": false
+  },
+  "vinted_fr": {
+    "label": "Vinted FR",
+    "provider": "vinted",
+    "regions": ["FR"],
+    "currencies": {"FR": "EUR"},
+    "unsupported": ["colors", "categories"],
+    "capabilities_verified": false
+  },
+  "vinted_it": {
+    "label": "Vinted IT",
+    "provider": "vinted",
+    "regions": ["IT"],
+    "currencies": {"IT": "EUR"},
+    "unsupported": ["colors", "categories"],
+    "capabilities_verified": false
+  },
+  "vinted_de": {
+    "label": "Vinted DE",
+    "provider": "vinted",
+    "regions": ["DE"],
+    "currencies": {"DE": "EUR"},
+    "unsupported": ["colors", "categories"],
+    "capabilities_verified": false
+  }
+}

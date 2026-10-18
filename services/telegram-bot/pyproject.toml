@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vpars-telegram-bot"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "vpars-shared==0.1.0",
+  "aiogram>=3.31,<4", "aiohttp>=3.11,<4", "redis>=5,<7",
+  "SQLAlchemy>=2.0.36,<2.1", "asyncpg>=0.30,<1", "alembic>=1.14,<2",
+  "pydantic-settings>=2.7,<3", "tzdata>=2025.2",
+  "cryptography>=46,<49",
+  "certifi>=2024.8.30",
+]
+
+[project.optional-dependencies]
+autobuy = ["playwright>=1.60,<2"]
+test = ["pytest>=8,<10", "pytest-asyncio>=0.25,<2", "aiosqlite>=0.20,<1", "ruff>=0.9,<1"]
+
+[project.scripts]
+vpars-bot = "vpars_bot.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["vpars_bot*"]
+
+[tool.setuptools.package-data]
+vpars_bot = ["handoff_assets/*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["integration: requires isolated PostgreSQL and Redis test services"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]

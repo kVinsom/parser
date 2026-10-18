@@ -1,0 +1,3 @@
+-r requirements.lock
+playwright==1.63.0
+pyee==13.0.1

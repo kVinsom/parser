@@ -1,0 +1,34 @@
+[
+  {
+    "region": "UK",
+    "capture": "grpc-20260915T213415Z-28557d9c/UK.html.gz",
+    "capture_sha256": "af7414ce009e9f89a5612f9a1165dcee4cc6b592c0fbbd63b8617d20bd416ba4",
+    "fixture": "UK.html",
+    "fixture_sha256": "47bb451bf1c83ca35548ce5df4af59ec2c45d7632b7a93dae84ef08df9d1f8ed",
+    "cards": 8
+  },
+  {
+    "region": "FR",
+    "capture": "grpc-20260915T213415Z-28557d9c/FR.html.gz",
+    "capture_sha256": "f6441aa2e06d51249960c190cf706b63891b7caf88bd766c44cf5d9e15b23ff7",
+    "fixture": "FR.html",
+    "fixture_sha256": "2c508a09b35e568a65e59f4e0c6db995a08834f62dd77dfe71be299ad4c0b2d7",
+    "cards": 10
+  },
+  {
+    "region": "IT",
+    "capture": "grpc-20260915T213415Z-28557d9c/IT.html.gz",
+    "capture_sha256": "54997278f4520027d30b83d981d48168d46b7f0da2138193649adec25e71b994",
+    "fixture": "IT.html",
+    "fixture_sha256": "b69ee8b345cca9a1af43a1695c18250bd40faf9e4ffa6625ca8b4e415cf6783b",
+    "cards": 10
+  },
+  {
+    "region": "DE",
+    "capture": "grpc-20260915T213415Z-28557d9c/DE.html.gz",
+    "capture_sha256": "05b222c0f11ee01b518468318f18d539bae57f5a8bb1efed2a61afc93cc9580c",
+    "fixture": "DE.html",
+    "fixture_sha256": "7d19147c840abd70e708fbbf42943115da824a44f380937fc2b52e25636bf56c",
+    "cards": 10
+  }
+]

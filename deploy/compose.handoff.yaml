@@ -1,0 +1,27 @@
+# Optional HTTPS endpoint for user-controlled checkout, while bot still uses polling.
+services:
+  bot:
+    environment:
+      WALLET_HANDOFF_URL: ${WALLET_HANDOFF_URL:?Set https://your-checkout-domain}
+    ports: ["80:80", "443:443"]
+  worker:
+    environment:
+      WALLET_HANDOFF_URL: ${WALLET_HANDOFF_URL:?Set https://your-checkout-domain}
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    network_mode: service:bot
+    depends_on:
+      bot: {condition: service_started, restart: true}
+    environment:
+      WALLET_HANDOFF_URL: ${WALLET_HANDOFF_URL:?Set https://your-checkout-domain}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+volumes:
+  caddy-data:
+  caddy-config:

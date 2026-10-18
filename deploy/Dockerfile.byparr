@@ -1,0 +1,9 @@
+FROM ghcr.io/thephaseless/byparr:3.0.4
+USER root
+COPY services/access-gateway/bypass/*.py /opt/vinted/
+COPY shared/vpars_shared/http_cancellation.py /opt/vinted/http_cancellation.py
+RUN mkdir -p /var/cache/vinted-static /var/lib/vinted-budget \
+    && chown 1000:1000 /var/cache/vinted-static /var/lib/vinted-budget \
+    && chmod 700 /var/lib/vinted-budget
+USER 1000
+ENTRYPOINT ["tini", "--", "/app/.venv/bin/python", "/opt/vinted/byparr_runtime.py"]

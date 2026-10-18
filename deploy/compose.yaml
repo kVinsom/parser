@@ -1,0 +1,180 @@
+name: vpars-server
+
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+
+x-env: &app-env
+  APP_ENV: production
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?Set TELEGRAM_BOT_TOKEN in deploy/.env}
+  DATABASE_URL: postgresql+asyncpg://vpars:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}@postgres:5432/vpars_bot
+  REDIS_URL: redis://redis:6379/0
+  SOURCE_CONFIG: /app/services/telegram-bot/config/sources.json
+  WALLET_SESSION_ENCRYPTION_KEY: ${WALLET_SESSION_ENCRYPTION_KEY:?Set or import the wallet encryption key}
+  WALLET_CHECKOUT_MODE: ${WALLET_CHECKOUT_MODE:-bot}
+  WALLET_CACHE_CAPACITY: ${WALLET_CACHE_CAPACITY:-4}
+  WALLET_CACHE_IDLE_SECONDS: ${WALLET_CACHE_IDLE_SECONDS:-300}
+  MENU_MODE: ${MENU_MODE:-menu}
+  UPDATE_MODE: polling
+
+x-app: &app
+  image: vpars-app:${VPARS_IMAGE_TAG:-server}
+  build: {context: .., dockerfile: deploy/Dockerfile}
+  environment: *app-env
+  restart: unless-stopped
+  init: true
+  stop_grace_period: 100s
+  logging: *logging
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vpars_bot
+      POSTGRES_USER: vpars
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+    volumes: [postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U vpars -d vpars_bot']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, "yes", --maxmemory-policy, noeviction]
+    volumes: [redis:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging: *logging
+
+  migrate:
+    <<: *app
+    command: [migrate]
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  bot:
+    <<: *app
+    command: [bot]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    volumes:
+      - wallet-profiles:/app/services/telegram-bot/.wallet-profiles
+      - wallet-contracts:/app/services/telegram-bot/.wallet-contracts
+    shm_size: 512mb
+    security_opt: ["seccomp=./seccomp-playwright.json"]
+    healthcheck:
+      test: [CMD, python, /app/deploy/service.py, health, bot]
+      interval: 30s
+      timeout: 12s
+      start_period: 30s
+      retries: 3
+
+  worker:
+    <<: *app
+    command: [worker]
+    environment:
+      <<: *app-env
+      WORKER_PARSER_URL: http://parser:8002
+      WORKER_MANAGE_PARSER: "false"
+      WORKER_STATE_DIR: /app/services/worker/.artifacts
+      WORKER_INTERVAL: ${WORKER_INTERVAL:-4}
+      WORKER_PAGES: ${WORKER_PAGES:-3}
+    volumes: [worker-state:/app/services/worker/.artifacts]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+      parser: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, /app/deploy/service.py, health, worker]
+      interval: 30s
+      timeout: 12s
+      start_period: 45s
+      retries: 3
+
+  parser:
+    <<: *app
+    command: [parser]
+    environment:
+      PARSER_GATEWAY_TARGET: gateway:50051
+      PARSER_MAX_INFLIGHT: "6"
+    depends_on:
+      gateway: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health/ready', timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      start_period: 15s
+      retries: 5
+
+  gateway:
+    build: {context: ../services/access-gateway/bypass, dockerfile: Dockerfile.grpc}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs: [/tmp:size=16m]
+    stop_grace_period: 100s
+    environment:
+      BYPARR_URL: http://byparr:8191
+      VINTED_GRPC_MAX_INFLIGHT: "6"
+      VINTED_PROXY_BUDGET_REQUIRED: "1"
+    depends_on:
+      byparr: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, grpc_client.py, --health]
+      interval: 15s
+      timeout: 8s
+      retries: 5
+    logging: *logging
+
+  byparr:
+    build: {context: .., dockerfile: deploy/Dockerfile.byparr}
+    restart: unless-stopped
+    # Leave CPU time for Telegram, the parser, PostgreSQL and Redis on a 6-vCPU VPS.
+    cpus: ${BYPARR_CPU_LIMIT:-4.0}
+    volumes: [static-cache:/var/cache/vinted-static, proxy-budget:/var/lib/vinted-budget]
+    shm_size: 512mb
+    environment:
+      LOG_LEVEL: INFO
+      BROWSER_LOCALE: fr-FR
+      BLOCK_MEDIA: "true"
+      RETURN_ONLY_COOKIES: "false"
+      VINTED_FAST_CATALOGS: "1"
+      VINTED_DOCUMENT_CATALOG: "1"
+      VINTED_COMPACT_CATALOG: "1"
+      VINTED_ITEMS_CATALOG: "1"
+      VINTED_REUSE_BROWSER: "1"
+      VINTED_STATIC_CACHE: "1"
+      VINTED_STATIC_CACHE_DIR: /var/cache/vinted-static
+      VINTED_SKIP_ANALYTICS: "1"
+      VINTED_PROXY_BUDGET_PATH: /var/lib/vinted-budget/budget.sqlite3
+      VINTED_PROXY_BUDGET_START: "2026-11"
+      PROXY_SERVER: ${PROXY_SERVER:-}
+      PROXY_USERNAME: ${PROXY_USERNAME:-}
+      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+    healthcheck:
+      test: [CMD-SHELL, 'curl --fail --silent http://127.0.0.1:8191/health >/dev/null']
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+    logging: *logging
+
+volumes:
+  postgres:
+  redis:
+  worker-state:
+  wallet-profiles:
+  wallet-contracts:
+  static-cache:
+  proxy-budget:

@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package vpars.access.v1;
+
+// Public catalogs and item pages. Regions and URLs are controlled by the server.
+service VintedAccess {
+  rpc ListRegions(ListRegionsRequest) returns (ListRegionsResponse);
+  rpc FetchCatalog(FetchCatalogRequest) returns (FetchCatalogResponse);
+  rpc FetchItem(FetchItemRequest) returns (FetchCatalogResponse);
+}
+
+message ListRegionsRequest {}
+
+message Region {
+  string code = 1;
+  string name = 2;
+  string base_url = 3;
+}
+
+message ListRegionsResponse {
+  repeated Region regions = 1;
+}
+
+message FetchCatalogRequest {
+  string region = 1; // Required: UK (or GB), FR, IT, DE.
+  string search_text = 2; // At most 500 UTF-8 bytes.
+  optional uint32 page = 3; // Omitted = 1; explicit zero is invalid.
+  optional uint32 timeout_seconds = 4; // Omitted = 60; range 1..300.
+  bool include_html = 5; // HTML is returned only for PAGE_LOADED.
+  bool load_media = 6; // Omitted/false blocks images, media and fonts.
+  bool measure_timing = 7; // Opt in to browser timing diagnostics.
+  bool newest_first = 8;
+}
+
+message FetchItemRequest {
+  string region = 1;
+  string item_id = 2; // Numeric identity only; the server constructs the URL.
+  optional uint32 timeout_seconds = 3;
+  bool include_html = 4;
+  bool force_html = 5; // Bypass API when it cannot establish publication age or required metadata.
+}
+
+enum CatalogOutcome {
+  CATALOG_OUTCOME_UNSPECIFIED = 0;
+  PAGE_LOADED = 1;
+  BLOCKED = 2;
+  RATE_LIMITED = 3;
+  UNEXPECTED_REDIRECT = 4;
+  UNEXPECTED_CONTENT = 5;
+  UPSTREAM_ERROR = 6;
+  SERVICE_ERROR = 7;
+  TIMEOUT = 8;
+}
+
+message FetchCatalogResponse {
+  string region = 1;
+  string url = 2;
+  CatalogOutcome outcome = 3;
+  string reason = 4;
+  string title = 5;
+  string final_url = 6;
+  optional uint32 upstream_status = 7;
+  optional uint32 byparr_http_status = 8;
+  string byparr_version = 9;
+  string browser_mode = 10;
+  bool block_media = 11;
+  uint32 item_count = 12;
+  uint32 item_link_count = 13;
+  repeated string item_samples = 14;
+  uint64 response_bytes = 15;
+  double elapsed_seconds = 16;
+  bytes html_utf8 = 17; // Raw UTF-8; transport uses gRPC gzip compression.
+  map<string, double> timings_ms = 18; // Nested stages; not additive. Missing = unavailable.
+  string browser_lifecycle = 19; // reused, per-request, or unreported.
+  bytes item_json_utf8 = 20; // FetchItem only: sanitized /items/{id}/details JSON instead of HTML.
+}

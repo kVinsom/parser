@@ -1,0 +1,5 @@
+-r requirements-grpc-dev.txt
+pytest==9.1.1
+pytest-asyncio==1.4.0
+httpx==0.28.1
+fastapi==0.141.1

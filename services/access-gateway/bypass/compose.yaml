@@ -1,0 +1,61 @@
+name: vinted-access
+services:
+  gateway:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile.grpc
+    ports:
+      - "127.0.0.1:50051:50051"
+    environment:
+      BYPARR_URL: http://byparr:8191
+      VINTED_GRPC_MAX_INFLIGHT: ${VINTED_GRPC_MAX_INFLIGHT:-6}
+      VINTED_PROXY_BUDGET_REQUIRED: "1"
+    depends_on:
+      byparr:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    init: true
+    stop_grace_period: 320s
+    healthcheck:
+      test: ["CMD", "python", "grpc_client.py", "--health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+  byparr:
+    restart: unless-stopped
+    build:
+      context: ../../..
+      dockerfile: deploy/Dockerfile.byparr
+    cpus: ${BYPARR_CPU_LIMIT:-4.0}
+    volumes:
+      - static-cache:/var/cache/vinted-static
+      - proxy-budget:/var/lib/vinted-budget
+    ports:
+      - "127.0.0.1:8191:8191"
+    shm_size: 512mb
+    environment:
+      LOG_LEVEL: INFO
+      BROWSER_LOCALE: fr-FR
+      BLOCK_MEDIA: "true"
+      RETURN_ONLY_COOKIES: "false"
+      VINTED_FAST_CATALOGS: ${VINTED_FAST_CATALOGS:-1}
+      VINTED_DOCUMENT_CATALOG: ${VINTED_DOCUMENT_CATALOG:-1}
+      VINTED_COMPACT_CATALOG: ${VINTED_COMPACT_CATALOG:-1}
+      VINTED_ITEMS_CATALOG: ${VINTED_ITEMS_CATALOG:-1}
+      VINTED_REUSE_BROWSER: ${VINTED_REUSE_BROWSER:-1}
+      VINTED_STATIC_CACHE: ${VINTED_STATIC_CACHE:-1}
+      VINTED_STATIC_CACHE_DIR: /var/cache/vinted-static
+      VINTED_PROXY_BUDGET_PATH: /var/lib/vinted-budget/budget.sqlite3
+      VINTED_PROXY_BUDGET_START: "2026-11"
+      VINTED_SKIP_ANALYTICS: ${VINTED_SKIP_ANALYTICS:-1}
+      PROXY_SERVER: ${PROXY_SERVER:-}
+      PROXY_USERNAME: ${PROXY_USERNAME:-}
+      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+
+volumes:
+  static-cache:
+  proxy-budget:

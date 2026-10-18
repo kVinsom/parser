@@ -1,0 +1,19 @@
+FROM python:3.12.14-slim AS contracts
+ENV PYTHONDONTWRITEBYTECODE=1
+WORKDIR /build
+RUN pip install --no-cache-dir grpcio-tools==1.84.0 protobuf==7.36.1
+COPY proto/ proto/
+COPY vinted_rpc/__init__.py vinted_rpc/__init__.py
+RUN python -m grpc_tools.protoc -Iproto --python_out=. --grpc_python_out=. proto/vinted_rpc/access.proto
+
+FROM python:3.12.14-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY requirements.txt requirements-grpc.txt ./
+RUN pip install --no-cache-dir -r requirements-grpc.txt
+COPY --from=contracts /build/vinted_rpc ./vinted_rpc
+COPY grpc_server.py grpc_client.py grpc_common.py vinted.py vinted_regions.py artifacts.py item_api.py cancellable_http.py ./
+COPY proxy_budget.py daily_budget.py budget_guard.py ./
+USER 65532:65532
+EXPOSE 50051
+CMD ["python", "grpc_server.py", "--listen", "0.0.0.0:50051"]

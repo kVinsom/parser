@@ -1,0 +1,7 @@
+fastapi==0.141.1
+-e ../../shared
+pydantic==2.13.5
+uvicorn==0.53.0
+selectolax==0.4.12
+grpcio==1.84.0
+protobuf==7.36.1

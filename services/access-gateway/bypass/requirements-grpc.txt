@@ -1,0 +1,4 @@
+-r requirements.txt
+grpcio==1.84.0
+grpcio-health-checking==1.84.0
+protobuf==7.36.1

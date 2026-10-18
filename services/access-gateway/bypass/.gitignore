@@ -1,0 +1,6 @@
+.venv/
+.deps/
+.tmp/
+.artifacts/
+__pycache__/
+.env

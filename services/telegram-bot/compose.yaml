@@ -1,0 +1,25 @@
+name: vpars-telegram
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vpars_bot
+      POSTGRES_USER: vpars
+      POSTGRES_PASSWORD: vpars_local
+    ports: ["127.0.0.1:15432:5432"]
+    volumes: ["bot_postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vpars -d vpars_bot"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["127.0.0.1:16379:6379"]
+    volumes: ["bot_redis:/data"]
+volumes:
+  bot_postgres:
+  bot_redis:

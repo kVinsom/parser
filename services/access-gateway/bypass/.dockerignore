@@ -1,0 +1,15 @@
+**
+!Dockerfile.grpc
+!requirements.txt
+!requirements-grpc.txt
+!grpc_server.py
+!grpc_client.py
+!grpc_common.py
+!vinted.py
+!vinted_regions.py
+!artifacts.py
+!item_api.py
+!proto/
+!proto/**
+!vinted_rpc/
+!vinted_rpc/__init__.py

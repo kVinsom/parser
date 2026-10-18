@@ -1,0 +1,1 @@
+"""Stateless marketplace catalog parser."""
